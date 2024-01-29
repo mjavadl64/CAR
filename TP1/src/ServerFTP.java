@@ -28,7 +28,7 @@ public class ServerFTP {
         String msgPassIsValid = "230 Log in successfule\r\n";
         String msgFeatures = "211 feature\r\n";
         String msgUsrValid = "331 User Valid\r\n";
-        String passWord = "123456";
+        String passWord = "1";
         String usrName = "javad";
         String str, message, fileName;
 
@@ -46,15 +46,6 @@ public class ServerFTP {
 
         // Message sur client pour demander identifiant
         out.write(msgUsrName.getBytes());
-
-        // Recevoir la reponse de client
-        str = scanner.nextLine();
-
-        // traiter la reponse
-
-        if (str.equals("OPTS UTF8 ON")) {
-            out.write(msgWindonw.getBytes());
-        }
 
         // Verifier identifiant
         str = scanner.nextLine();
@@ -83,9 +74,10 @@ public class ServerFTP {
         while (isConnecte) {
 
             str = scanner.nextLine();
+            System.out.println(str);
             // spliter le message
             message = str.split("\\s+")[0];
-            fileName = str.split("\\s+")[1];
+            
 
             if (message.equals("SYST")) {
                 out.write(msgUnix.getBytes());
@@ -100,6 +92,44 @@ public class ServerFTP {
                 System.out.println(str);
             }
 
+            //traiter le message LIST
+            if (message.equals("LIST")){
+                myClientData = myServerData.accept();
+                out.write(msgAccepDateConnection.getBytes());
+                System.out.println("connected to new port");
+
+                OutputStream outDate = myClientData.getOutputStream();
+
+                //recupere les fichier sur serveur
+                String chemain = System.getProperty("user.dir");
+                File repertoirFile = new File(chemain);
+
+                //Verifier si le chemain est un repertoir
+                if (repertoirFile.isDirectory()){
+                    String[] fichiers = repertoirFile.list();
+
+                    //Afficher la list des fichiers
+                    for (String fichier : fichiers){
+                        String imp = fichier+"\r\n";
+                        outDate.write(imp.getBytes()); 
+                    }
+                    
+                }
+
+                outDate.close();
+                myServerData.close();
+                myClientData.close();
+
+                out.write(msgCloseServerSocket.getBytes());             
+                
+            }
+
+            if (message.equals("CWD")){
+                fileName = str.split("\\s+")[1];
+
+            }
+
+            //traiter message EPSV mode passif 
             if (message.equals("EPSV")) {
                 System.out.println(str);
                 out.write(msgPassive.getBytes());
