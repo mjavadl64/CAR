@@ -18,11 +18,12 @@ public class ServerFTP {
         String msgPassive = "229 Entering Extended Passive Mode (|||2024|)\r\n";
         String msgAccepDateConnection = "150 Accept data connection \r\n";
         String msgCloseServerSocket = "226 File successfully transferd\r\n";
+        String msgAcctionSucces = "250 Action successful\r\n";
         String msgUnix = "215 UNIX Type: L8\r\n";
         String msgNotLogedin = "430 Try again:\r\n";
-        String msgErrore = "501 Error, try again:\r\n";
+        String msgRepertoir = "212 You are inside\r\n";
         String msgWindonw = "200 accepted\r\n";
-        String msgTypeAccept = "200 Type accepted\r\n";
+        String msgTypeAccept = "200 Accepted\r\n";
         String msqLogOut = "231 You are loged out\r\n";
         String msgUsrName = "220 Enter your username:\r\n";
         String msgPassIsValid = "230 Log in successfule\r\n";
@@ -124,12 +125,16 @@ public class ServerFTP {
                 
             }
 
+            // Traiter le message CD 
             if (message.equals("CWD")){
                 fileName = str.split("\\s+")[1];
+                System.out.println(str);
+                System.out.println(fileName);
+                out.write(msgAcctionSucces.getBytes());
 
             }
 
-            //traiter message EPSV mode passif 
+            //Traiter message Get, EPSV mode passif 
             if (message.equals("EPSV")) {
                 System.out.println(str);
                 out.write(msgPassive.getBytes());
@@ -140,6 +145,7 @@ public class ServerFTP {
 
             if (message.equals("RETR")) {
 
+                fileName = str.split("\\s+")[1];    
                 myClientData = myServerData.accept();
                 out.write(msgAccepDateConnection.getBytes());
                 System.out.println("connected to new port");
@@ -147,8 +153,8 @@ public class ServerFTP {
                 // recupere le fichier:
 
                 OutputStream outPut = myClientData.getOutputStream();
-                // File file = new File("image/"+fileName);
-                InputStream filInput = new FileInputStream("src/image/proprioter.jpg");
+                File file = new File(fileName);
+                InputStream filInput = new FileInputStream(file);
 
                 byte[] buffer = new byte[1024];
                 int bytesRead;
