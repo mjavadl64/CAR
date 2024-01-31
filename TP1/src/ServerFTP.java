@@ -23,6 +23,7 @@ public class ServerFTP {
         String msgNotLogedin = "430 Try again:\r\n";
         String msgRepertoir = "212 You are inside\r\n";
         String msgWindonw = "200 accepted\r\n";
+        String msgErroreDir = "500 Please do dir first\r\n";
         String msgTypeAccept = "200 Accepted\r\n";
         String msqLogOut = "231 You are loged out\r\n";
         String msgUsrName = "220 Enter your username:\r\n";
@@ -31,7 +32,8 @@ public class ServerFTP {
         String msgUsrValid = "331 User Valid\r\n";
         String passWord = "1";
         String usrName = "javad";
-        String str, message, fileName;
+        String str, message, fileName, chemainFile="" ;
+        String[] fichiers = null;
 
         // donner un port à mon server
         myServer = new ServerSocket(myPort);
@@ -101,13 +103,17 @@ public class ServerFTP {
 
                 OutputStream outDate = myClientData.getOutputStream();
 
-                //recupere les fichier sur serveur
-                String chemain = System.getProperty("user.dir");
-                File repertoirFile = new File(chemain);
+                if (chemainFile == ""){ 
+                    //recupere les fichier sur serveur
+                    chemainFile = System.getProperty("user.dir");
+                }
 
+                System.out.println(chemainFile);
+
+                File repertoirFile = new File(chemainFile);
                 //Verifier si le chemain est un repertoir
                 if (repertoirFile.isDirectory()){
-                    String[] fichiers = repertoirFile.list();
+                    fichiers = repertoirFile.list();
 
                     //Afficher la list des fichiers
                     for (String fichier : fichiers){
@@ -127,10 +133,19 @@ public class ServerFTP {
 
             // Traiter le message CD 
             if (message.equals("CWD")){
+                
+                //recuperez le nom de dossier 
                 fileName = str.split("\\s+")[1];
-                System.out.println(str);
-                System.out.println(fileName);
-                out.write(msgAcctionSucces.getBytes());
+                
+                // verifiez que user deja fait un dir
+                if (fichiers != null ){
+                    chemainFile = chemainFile+"/"+fileName;
+                    System.out.println(fileName);
+                    out.write(msgAcctionSucces.getBytes());
+                }
+                else {
+                    out.write(msgErroreDir.getBytes());
+                }
 
             }
 
