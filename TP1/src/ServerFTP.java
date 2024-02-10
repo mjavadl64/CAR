@@ -36,16 +36,15 @@ public class ServerFTP {
         String msgUsrValid = "331 User Valid\r\n";
         String passWord = "car";
         String usrName = "miage";
-        String str, message, fileName, chemainFile="",nomFishier ;
+        String str, message, fileName, chemainFile = "", nomFishier;
         String[] fichiers = null;
         int nombreLine;
-
 
         // donner un port à mon server
         myServer = new ServerSocket(myPort);
         System.out.println("Ready to connect...");
-        
-        // Connecter mon client à mon server
+
+        // Connecte mon client à mon server
         myClient = myServer.accept();
         System.out.println("We are connected with port 2121");
 
@@ -54,7 +53,7 @@ public class ServerFTP {
         Scanner scanner = new Scanner(in);
 
         // Message sur client pour demander identifiant
-             
+
         while (isConnecte) {
 
             str = scanner.nextLine();
@@ -62,180 +61,142 @@ public class ServerFTP {
             // spliter le message
             message = str.split("\\s+")[0];
 
+            // Verifie Nom d'utilisateur
             if (str.equals("USER " + usrName)) {
                 System.out.println("Welcom " + usrName);
                 out.write(msgUsrValid.getBytes());
-    
-            } 
+            }
 
+            // Verifiez mot de pass
             if (str.equals("PASS " + passWord)) {
                 out.write(msgPassIsValid.getBytes());
                 System.out.println("Login successful");
-              } 
-            
-
-            if (message.equals("SYST")) {
-                out.write(msgUnix.getBytes());
             }
 
-            if (message.equals("FEAT")) {
-                out.write(msgFeatures.getBytes());
-            }
+            // Traiter le message du client
+            switch (message) {
 
-            if (message.equals("TYPE")) {
-                out.write(msgTypeAccept.getBytes());
-                System.out.println(str);
-            }
+                case "SYST":
+                    out.write(msgUnix.getBytes());
+                    break;
 
-            //traiter le message LIST
-            if (message.equals("LIST")){
-                myClientData = myServerData.accept();
-                out.write(msgAccepDateConnection.getBytes());
-                System.out.println("connected to new port");
+                case "FEAT":
+                    out.write(msgFeatures.getBytes());
+                    break;
 
-                OutputStream outDate = myClientData.getOutputStream();
+                case "TYPE":
+                    out.write(msgTypeAccept.getBytes());
+                    break;
 
-                if (chemainFile == ""){ 
-                    //recupere les fichier sur serveur
-                    chemainFile = System.getProperty("user.dir");
-                    
-                }
+                case "LIST":
+                    myClientData = myServerData.accept();
+                    out.write(msgAccepDateConnection.getBytes());
+                    System.out.println("connected to new port");
+                    OutputStream outDate = myClientData.getOutputStream();
 
-                System.out.println(chemainFile);
-
-                File repertoirFile = new File(chemainFile);
-                //Verifier si le chemain est un repertoir
-                if (repertoirFile.isDirectory()){
-                    fichiers = repertoirFile.list();
-
-                    //Afficher la list des fichiers
-                    for (String fichier : fichiers){
-                        String imp = fichier+"\r\n";
-                        outDate.write(imp.getBytes()); 
+                    if (chemainFile == "") {
+                        // recupere les fichier sur serveur
+                        chemainFile = System.getProperty("user.dir");
                     }
-                    
-                }
+                    System.out.println(chemainFile);
+                    File repertoirFile = new File(chemainFile);
+                    // Verifier si le chemain est un repertoir
+                    if (repertoirFile.isDirectory()) {
+                        fichiers = repertoirFile.list();
+                        // Afficher la list des fichiers
+                        for (String fichier : fichiers) {
+                            String imp = fichier + "\r\n";
+                            outDate.write(imp.getBytes());
+                        }
 
-                outDate.close();
-                myServerData.close();
-                myClientData.close();
+                    }
+                    // Fermez les port data
+                    outDate.close();
+                    myServerData.close();
+                    myClientData.close();
+                    out.write(msgCloseServerSocket.getBytes());
+                    break;
 
-                out.write(msgCloseServerSocket.getBytes());             
-                
-            }
+                // Traiter le message CD
+                case "CWD":
+                    // recuperez le nom de dossier
+                    fileName = str.split("\\s+")[1];
 
-            // Traiter le message CD 
-            if (message.equals("CWD")){
-                
-                //recuperez le nom de dossier 
-                fileName = str.split("\\s+")[1];
+                    // verifiez que user deja fait un dir
+                    if (fichiers != null) {
+                        chemainFile = chemainFile + "/" + fileName;
+                        System.out.println(fileName);
+                        out.write(msgAcctionSucces.getBytes());
+                    } else {
+                        out.write(msgErroreDir.getBytes());
+                    }
+                    break;
 
-            
-                
-                // verifiez que user deja fait un dir
-                if (fichiers != null ){
-                    chemainFile = chemainFile+"/"+fileName;
-                    System.out.println(fileName);
-                    out.write(msgAcctionSucces.getBytes());
-                }
-                else {
-                    out.write(msgErroreDir.getBytes());
-                }
+                // Traiter message Get, EPSV mode passif
+                case "EPSV":
+                    out.write(msgPassive.getBytes());
+                    // Cree nouvaue port
+                    myServerData = new ServerSocket(myPortData);
+                    break;
 
-            }
+                case "RETR":
+                    fileName = str.split("\\s+")[1];
+                    myClientData = myServerData.accept();
+                    out.write(msgAccepDateConnection.getBytes());
+                    System.out.println("connected to new port");
 
-            //Traiter message Get, EPSV mode passif 
-            if (message.equals("EPSV")) {
-            
-                out.write(msgPassive.getBytes());
-                // Cree nouvaue port
-                myServerData = new ServerSocket(myPortData);
-
-            }
-
-
-            // Gere message RETR
-            if (message.equals("RETR")) {
-
-                fileName = str.split("\\s+")[1];    
-                myClientData = myServerData.accept();
-                out.write(msgAccepDateConnection.getBytes());
-                System.out.println("connected to new port");
-
-                // recupere le fichier:
-
-                
-                String filePath = chemainFile+"/"+fileName;
-
-                File file = new File(filePath);
-                System.out.println(filePath);
-                InputStream filInput = new FileInputStream(file);
-
-                try (OutputStream outPut = myClientData.getOutputStream()){
-                    if (file.exists()){
-                    byte[] buffer = new byte[1024];
-                    int bytesRead;
-                    while ((bytesRead = filInput.read(buffer)) != -1) {
-                        outPut.write(buffer, 0, bytesRead);
+                    // recupere le fichier:
+                    String filePath = chemainFile + "/" + fileName;
+                    File file = new File(filePath);
+                    InputStream filInput = new FileInputStream(file);
+                    try (OutputStream outPut = myClientData.getOutputStream()) {
+                        if (file.exists()) {
+                            byte[] buffer = new byte[1024];
+                            int bytesRead;
+                            while ((bytesRead = filInput.read(buffer)) != -1) {
+                                outPut.write(buffer, 0, bytesRead);
+                            }
                         }
                     }
-                }
-                
-                myServerData.close();
+                    myServerData.close();
+                    out.write(msgCloseServerSocket.getBytes());
+                    break;
 
-                out.write(msgCloseServerSocket.getBytes());
-
-            }
-                  //Gerez le message Ping
-                  if (str.equals("PING")){
+                case "PING":
                     out.write(msgPingOk.getBytes());
                     out.write(("PONG\r\n").getBytes());
-                }
+                    break;
 
-                //Gere le message LINE
-                if (message.equals("LINE")){
+                case "LINE":
                     nomFishier = str.split("\\s+")[1];
                     nombreLine = Integer.parseInt(str.split("\\s+")[2]);
-
                     myClientData = myServerData.accept();
                     out.write(msgAccepDateConnection.getBytes());
                     OutputStream outData = myClientData.getOutputStream();
-
                     File file = new File(nomFishier);
-
-                    try (BufferedReader reader = new BufferedReader(new FileReader(file))){
+                    try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
                         String line;
-                        int lineCounter=1;
-
-                        while ((line= reader.readLine())!= null){
+                        int lineCounter = 1;
+                        while ((line = reader.readLine()) != null) {
                             if (nombreLine == lineCounter) {
                                 outData.write(line.getBytes());
                                 break;
                             }
                             lineCounter++;
                         }
-
-                        //Si il ne trouve pas le ligne
+                        // Si il ne trouve pas le ligne
                         outData.write(msgError.getBytes());
-                    }
-                    
-                        
-                     catch (Exception e) {
+                    } catch (Exception e) {
                         // TODO: handle exception
                     }
+                    break;
 
-                    
-                    
-
-                }
-    
-                if (message.equals("QUIT")) {
+                case "QUIT":
                     out.write(msqLogOut.getBytes());
                     scanner.close();
                     isConnecte = false;
-                }      
-            
-           
+                    break;
+            }
         }
 
     }
